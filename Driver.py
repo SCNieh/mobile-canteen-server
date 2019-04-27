@@ -14,7 +14,7 @@ mycursor = mydb.cursor()
 
 app = Flask(__name__)
 
-@app.route('/login/', methods = ['GET', "POST"])
+@app.route('/register/', methods = ['GET', "POST"])
 def user_register():
     if request.method == 'POST':
         data = request.get_data()
