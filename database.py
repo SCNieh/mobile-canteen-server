@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, Date
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, Date, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
@@ -11,7 +11,6 @@ class Customer(Base):
 
     customer_id = Column(Integer, primary_key=True)
     name = Column(String(64), nullable=True)
-    email = Column(String(64), nullable=False)
     password = Column(String(64), nullable=False)
     phone = Column(String(64), nullable=True)
 
@@ -22,7 +21,6 @@ class Vendor(Base):
 
     vendor_id = Column(Integer, primary_key=True)
     name = Column(String(64), nullable=True)
-    email = Column(String(64), nullable=False)
     password = Column(String(64), nullable=False)
     phone = Column(String(64), nullable=True)
     description = Column(Text, nullable=True)
@@ -48,6 +46,11 @@ class Menu(Base):
     vendor_id = Column(Integer, ForeignKey('vendor.vendor_id'))
     date = Column(Date, nullable=False)
     name = Column(String(64), nullable=False)
+    description = Column(Text, nullable=True)
+    ingredient = Column(Text, nullable=True)
+    amount = Column(Integer, nullable=False)
+    amount_left = Column(Integer, nullable=False)
+    price = Column(Float, nullable=False)
 
     dishes = relationship('Images', backref = 'menu')
     orders = relationship("Orders", backref = 'menu')
