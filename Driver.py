@@ -27,6 +27,7 @@ def validate_token(token):
 def user_register():
     if request.method == 'POST':
         data = request.get_data()
+        data_dict = json.loads(data)
         print(data)
         # TODO: register
         return jsonify({"token": "EHAS12389ASDHJK"})
