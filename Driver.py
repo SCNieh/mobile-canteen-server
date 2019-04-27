@@ -49,12 +49,16 @@ def user_login():
         	customer = session.query(Customer).filter_by(phone = data_dict['phone']).first()
         	if customer is None:
         		return jsonify({'error_msg': "Not Exist", "token":None})
+            if customer.password != encrypt(data_dict['password']):
+                return jsonify({'error_msg': "Wrong Password", "token":None})
         	uid = customer.customer_id;
         	session.close()
         else:
         	vendor = session.query(Vendor).filter_by(phone = data_dict['phone']).first()
         	if vendor is None:
         		return jsonify({'error_msg': "Not Exist", "token":None})
+            if vendor.password != encrypt(data_dict['password']):
+                return jsonify({'error_msg': "Wrong Password", "token":None})
         	uid = customer.customer_id;
         	session.close()
         return jsonify({"token":encrypt(str(uid)), "error_msg":None})
