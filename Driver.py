@@ -18,6 +18,7 @@ app = Flask(__name__)
 def user_register():
     if request.method == 'POST':
         data = request.get_data()
+        data_dict = json.loads(data)
         # TODO: register
         return jsonify()
     else:
