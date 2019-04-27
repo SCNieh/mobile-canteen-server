@@ -72,7 +72,7 @@ def get_vendor_offerings():
         return jsonify()
 
 @app.route('/orders/<int:customer_id>/')
-def get_orders():
+def get_customer_orders():
     if request.method == 'GET':
         
         # TODO: return orders
@@ -92,7 +92,7 @@ def place_order():
         return jsonify()
 
 @app.route('/status/<int:vendor_id>/')
-def get_order():
+def get_vendor_orders():
     if request.method == 'GET':
         
         # TODO: return certain orders
