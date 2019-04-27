@@ -5,22 +5,40 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.orm import sessionmaker
 from database import Base, Customer, Vendor, Image, Menu, Orders
+from AES import encrypt, decrypt
 
 app = Flask(__name__)
 
 engine = create_engine('mysql://test:password@35.245.224.212:3306/mobile_canteen')
 Base.metadata.bind = engine
 
+DBSession = sessionmaker(bind=engine)
+
 @app.route('/register/', methods = ['GET', "POST"])
 def user_register():
     if request.method == 'POST':
+        session = DBSession()
         data = request.get_data()
         data_dict = json.loads(data)
-        print(data)
-        # TODO: register
-        return jsonify({"token": "EHAS12389ASDHJK"})
+        if data_dict['type'] == 'customer':
+        	
+        	find_customer = session.query(Customer).filter_by(phone = data_dict['phone'].decode('utf-8')).first()
+        	if find_customer is not None:
+        		return jsonify({"errorMessage":"Existed"})
+        	newCustomer = Customer(name = data_dict['name'], phone = data_dict['phone'], password = encrypt(data_dict["password"]))
+        	session.add(newCustomer)
+        else:
+
+        	find_vendor = session.query(Vendor).filter_by(phone = data_dict['phone'].decode('utf-8')).first()
+        	if find_vendor is not None:
+        		return jsonify({"errorMessage": "Existed"})
+        	newVendor = Vendor(name = data_dict['name'], phone = data_dict['phone'], password = encrypt(data_dict["password"]))
+        	session.add(newVendor)
+        session.commit()
+        session.close()
+        return jsonify({"errorMessage": None})
     else:
-        return 'POST only'
+        return jsonify({"errorMessage":'POST only'})
 
 @app.route('/login/', methods = ['GET', "POST"])
 def user_login():
