@@ -6,7 +6,6 @@ DROP TABLE if EXISTS customer;
 CREATE TABLE customer (
 customer_id INT NOT NULL AUTO_INCREMENT,
 name VARCHAR(64),
-email VARCHAR(64) NOT NULL,
 password VARCHAR(64) NOT NULL,
 phone VARCHAR(64),
 PRIMARY KEY (customer_id));
@@ -15,7 +14,6 @@ DROP TABLE if EXISTS vendor;
 CREATE TABLE vendor (
 vendor_id INT NOT NULL AUTO_INCREMENT,
 name VARCHAR(64) NOT NULL,
-email VARCHAR(64) NOT NULL,
 password VARCHAR(64) NOT NULL,
 phone VARCHAR(64) NOT NULL,
 description TEXT,
@@ -36,8 +34,10 @@ vendor_id INT NOT NULL,
 date DATE NOT NULL,
 name VARCHAR(64) NOT NULL,
 description TEXT,
+ingredient TEXT,
 amount INTEGER NOT NULL,
 amount_left INTEGER NOT NULL,
+price FLOAT NOT NULL,
 PRIMARY KEY (dish_id));
 
 DROP TABLE if EXISTS status;

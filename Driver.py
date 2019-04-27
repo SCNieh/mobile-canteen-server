@@ -5,6 +5,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.orm import sessionmaker
 from database import Base, Customer, Vendor, Image, Menu, Orders
+
 from AES import encrypt, decrypt
 
 app = Flask(__name__)
@@ -13,6 +14,15 @@ engine = create_engine('mysql://test:password@35.245.224.212:3306/mobile_canteen
 Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
+
+def validate_token(token):
+    id = decrypt(token)
+    session = DBSession()
+    user = session.query(Customer).filter_by(customer_id = id)
+    if user != None:
+        return True
+    else:
+        return False
 
 @app.route('/register/', methods = ['GET', "POST"])
 def user_register():
@@ -82,7 +92,18 @@ def get_dish():
 @app.route('/menus/add/', methods = ['GET', 'POST'])
 def publish_dish():
     if request.method == 'POST':
-        # TODO: add dish to db
+        data = json.loads(request.get_data())
+        token = data['token']
+        if not validate_token(token):
+            return jsonify({"error_msg": "invalid user"})
+        name = data["name"]
+        description = data["description"]
+        ingredients = data["ingredients"]
+        quantity = data["quantity"]
+        price = data["price"]
+        image = data["image"]
+        
+
         return True
 
 @app.route('/vendors/')
