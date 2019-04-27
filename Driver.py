@@ -21,33 +21,45 @@ def user_register():
         data = request.get_data()
         data_dict = json.loads(data)
         if data_dict['type'] == 'customer':
-        	
         	find_customer = session.query(Customer).filter_by(phone = data_dict['phone'].decode('utf-8')).first()
         	if find_customer is not None:
-        		return jsonify({"errorMessage":"Existed"})
+        		return jsonify({"error_msg": "Existed"})
         	newCustomer = Customer(name = data_dict['name'], phone = data_dict['phone'], password = encrypt(data_dict["password"]))
         	session.add(newCustomer)
         else:
 
         	find_vendor = session.query(Vendor).filter_by(phone = data_dict['phone'].decode('utf-8')).first()
         	if find_vendor is not None:
-        		return jsonify({"errorMessage": "Existed"})
+        		return jsonify({"error_msg": "Existed"})
         	newVendor = Vendor(name = data_dict['name'], phone = data_dict['phone'], password = encrypt(data_dict["password"]))
         	session.add(newVendor)
         session.commit()
         session.close()
-        return jsonify({"errorMessage": None})
+        return jsonify({"error_msg": None})
     else:
-        return jsonify({"errorMessage":'POST only'})
+        return jsonify({"error_msg":'POST only'})
 
 @app.route('/login/', methods = ['GET', "POST"])
 def user_login():
     if request.method == 'POST':
+        session = DBSession()
         data = request.get_data()
-        # TODO: verification
-        return jsonify()
+        data_dict = json.loads(data)
+        if data_dict['type'] == 'customer':
+        	customer = session.query(Customer).filter_by(phone = data_dict['phone']).first()
+        	if customer is None:
+        		return jsonify({'error_msg': "Not Exist", "token":None})
+        	uid = customer.customer_id;
+        	session.close()
+        else:
+        	vendor = session.query(Vendor).filter_by(phone = data_dict['phone']).first()
+        	if vendor is None:
+        		return jsonify({'error_msg': "Not Exist", "token":None})
+        	uid = customer.customer_id;
+        	session.close()
+        return jsonify({"token":encrypt(str(uid)), "error_msg":None})
     else:
-        return 'POST only'
+        return jsonify({"error_msg":'POST only'})
 
 @app.route('/menus/')
 def get_menus():
