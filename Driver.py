@@ -15,6 +15,15 @@ mycursor = mydb.cursor()
 app = Flask(__name__)
 
 @app.route('/login/', methods = ['GET', "POST"])
+def user_register():
+    if request.method == 'POST':
+        data = request.get_data()
+        # TODO: register
+        return jsonify()
+    else:
+        return 'POST only'
+
+@app.route('/login/', methods = ['GET', "POST"])
 def user_login():
     if request.method == 'POST':
         data = request.get_data()
