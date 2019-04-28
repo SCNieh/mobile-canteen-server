@@ -69,5 +69,5 @@ class Orders(Base):
     customer_id = Column(Integer, ForeignKey('customer.customer_id'))
     dish_id = Column(Integer, ForeignKey('menu.dish_id'))
 
-engine = create_engine('mysql://test:password@35.245.224.212:3306/mobile_canteen')
-# Base.metadata.create_all(engine)
+engine = create_engine('mysql://root:password@localhost:3306/mobile_canteen')
+Base.metadata.create_all(engine)

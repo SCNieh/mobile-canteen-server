@@ -10,11 +10,11 @@ from sqlalchemy.orm import sessionmaker
 from database import Base, Customer, Vendor, Image, Menu, Orders
 from google.cloud import storage
 from datetime import date
-from AES import decrypt
+from AES import encrypt, decrypt, AES_encrypt
 
 app = Flask(__name__)
 
-engine = create_engine('mysql://test:password@35.245.224.212:3306/mobile_canteen')
+engine = create_engine('mysql://root:password@localhost:3306/mobile_canteen')
 Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
@@ -65,22 +65,52 @@ def retrieve_image(session, dish_info):
 @app.route('/register/', methods = ['GET', "POST"])
 def user_register():
     if request.method == 'POST':
+        session = DBSession()
         data = request.get_data()
         data_dict = json.loads(data)
-        print(data_dict)
-        # TODO: register
-        return jsonify({"token": "EHAS12389ASDHJK"})
+        if data_dict['type'] == 'customer':
+        	find_customer = session.query(Customer).filter_by(phone = data_dict['phone']).first()
+        	if find_customer:
+        		return jsonify({"error_msg": "Existed"})
+        	newCustomer = Customer(name = data_dict['name'], phone = data_dict['phone'], password = AES_encrypt(data_dict["password"]))
+        	session.add(newCustomer)
+        else:
+            find_vendor = session.query(Vendor).filter_by(phone = data_dict['phone']).first()
+            if find_vendor:
+                return jsonify({"error_msg": "Existed"})
+            newVendor = Vendor(name = data_dict['name'], phone = data_dict['phone'], password = AES_encrypt(data_dict["password"]), status = "unavaliable")
+            session.add(newVendor)
+        session.commit()
+        session.close()
+        return jsonify({"error_msg": None})
     else:
-        return 'POST only'
+        return jsonify({"error_msg":'POST only'})
 
 @app.route('/login/', methods = ['GET', "POST"])
 def user_login():
     if request.method == 'POST':
+        session = DBSession()
         data = request.get_data()
-        # TODO: verification
-        return jsonify()
+        data_dict = json.loads(data)
+        if data_dict['type'] == 'customer':
+            customer = session.query(Customer).filter_by(phone = data_dict['phone']).first()
+            if not customer:
+                return jsonify({'error_msg': "Not Exist", "token": None})
+            if customer.password != AES_encrypt(data_dict['password']):
+                return jsonify({'error_msg': "Wrong Password", "token":None})
+            uid = customer.customer_id
+            session.close()
+        else:
+            vendor = session.query(Vendor).filter_by(phone = data_dict['phone']).first()
+            if not vendor:
+                return jsonify({'error_msg': "Not Exist", "token": None})
+            if vendor.password != AES_encrypt(data_dict['password']):
+                return jsonify({'error_msg': "Wrong Password", "token":None})
+            uid = vendor.vendor_id;
+            session.close()
+        return jsonify({"token":encrypt(str(uid)), "error_msg":None})
     else:
-        return 'POST only'
+        return jsonify({"error_msg":'POST only'})
 
 @app.route('/menus/')
 def get_menus():
