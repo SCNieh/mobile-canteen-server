@@ -14,7 +14,7 @@ from AES import encrypt, decrypt, AES_encrypt
 
 app = Flask(__name__)
 
-engine = create_engine('mysql://test:password@35.245.224.212:3306/mobile_canteen')
+engine = create_engine('mysql://root:password@localhost:3306/mobile_canteen')
 Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
@@ -212,6 +212,38 @@ def get_vendor_orders():
         
         # TODO: return certain orders
         return jsonify()
+
+@app.route('/customers/info', methods = ['GET', 'POST'])
+def customer_info():
+    if request.method == 'GET':
+        session = DBSession()
+        token = request.args.get('token')
+        customer_id = decrypt(token)
+        customer = session.query(Customer).filter_by(customer_id = customer_id).first()
+        if not customer:
+            return jsonify({'error_msg':'no such user'})
+
+        session.close()
+        return jsonify({'error_msg':None, 'phone':customer.phone, 'name':customer.name})
+    elif request.method == 'POST':
+        session = DBSession()
+        data = json.loads(request.get_data())
+        customer_id = decrypt(data['token'])
+        customer = session.query(Customer).filter_by(customer_id = customer_id).first()
+        if not customer:
+            return jsonify({'error_msg':'no such user'})
+        if 'name' in data and data['name']:
+            customer.name = data['name']
+        if 'phone' in data and data['phone']:
+            customer.phone = data['phone']
+        if 'password' in data and data['password']:
+            customer.password = AES_encrypt(data['password'])
+
+        session.add(customer)
+        session.commit()
+        session.close()
+
+        return jsonify({'error_msg':None})
 
 if __name__ == '__main__':
     app.debug = True
