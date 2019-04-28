@@ -7,14 +7,14 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.orm import sessionmaker
-from database import Base, Customer, Vendor, Image, Menu, Orders
+from database import Base, Customer, Vendor, Menu, Orders
 from google.cloud import storage
 from datetime import date
 from AES import encrypt, decrypt, AES_encrypt
 
 app = Flask(__name__)
 
-engine = create_engine('mysql://root:password@localhost:3306/mobile_canteen')
+engine = create_engine('mysql://test:password@35.245.224.212:3306/mobile_canteen')
 Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
@@ -22,10 +22,13 @@ DBSession = sessionmaker(bind=engine)
 TMP_IMAGE_PATH = "F:\\2018CMU\\17781\\tmp\\"
 GCP_BUCKET = "mobile-cateen-images"
 
-def validate_token(token):
+def validate_token(token, table):
     id = decrypt(token)
     session = DBSession()
-    user = session.query(Customer).filter_by(customer_id = id)
+    if table == "Vendor":
+        user = session.query(Vendor).filter_by(vendor_id = id).first()
+    elif table == "Customer":
+        user = session.query(Customer).filter_by(customer_id = id).first()
     if user != None:
         return id
     else:
@@ -106,7 +109,7 @@ def user_login():
                 return jsonify({'error_msg': "Not Exist", "token": None})
             if vendor.password != AES_encrypt(data_dict['password']):
                 return jsonify({'error_msg': "Wrong Password", "token":None})
-            uid = vendor.vendor_id;
+            uid = vendor.vendor_id
             session.close()
         return jsonify({"token":encrypt(str(uid)), "error_msg":None})
     else:
@@ -118,6 +121,7 @@ def get_menus():
         session = DBSession()
         dishes = session.query(Menu).all()
         dish_info = [dish.serialize for dish in dishes]
+        print(dish_info)
         dish_info = retrieve_image(session, dish_info)
         return jsonify(Menu = dish_info)
 
@@ -135,7 +139,8 @@ def publish_dish():
         session = DBSession()
         data = json.loads(request.get_data())
         token = data['token']
-        vendor_id = validate_token(token)
+        vendor_id = validate_token(token, "Vendor")
+        print("vendor_id: %s" % vendor_id)
         if not vendor_id:
             return jsonify({"error_msg": "invalid user"})
         name = data["name"]
