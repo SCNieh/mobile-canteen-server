@@ -6,11 +6,11 @@ from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.orm import sessionmaker
 from database import Base, Customer, Vendor, Image, Menu, Orders
 
-from AES import encrypt, decrypt
+from AES import encrypt, decrypt, AES_encrypt
 
 app = Flask(__name__)
 
-engine = create_engine('mysql://test:password@35.245.224.212:3306/mobile_canteen')
+engine = create_engine('mysql://root:password@localhost:3306/mobile_canteen')
 Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
@@ -31,18 +31,17 @@ def user_register():
         data = request.get_data()
         data_dict = json.loads(data)
         if data_dict['type'] == 'customer':
-        	find_customer = session.query(Customer).filter_by(phone = data_dict['phone'].decode('utf-8')).first()
-        	if find_customer is not None:
+        	find_customer = session.query(Customer).filter_by(phone = data_dict['phone']).first()
+        	if find_customer:
         		return jsonify({"error_msg": "Existed"})
-        	newCustomer = Customer(name = data_dict['name'], phone = data_dict['phone'], password = encrypt(data_dict["password"]))
+        	newCustomer = Customer(name = data_dict['name'], phone = data_dict['phone'], password = AES_encrypt(data_dict["password"]))
         	session.add(newCustomer)
         else:
-
-        	find_vendor = session.query(Vendor).filter_by(phone = data_dict['phone'].decode('utf-8')).first()
-        	if find_vendor is not None:
-        		return jsonify({"error_msg": "Existed"})
-        	newVendor = Vendor(name = data_dict['name'], phone = data_dict['phone'], password = encrypt(data_dict["password"]))
-        	session.add(newVendor)
+            find_vendor = session.query(Vendor).filter_by(phone = data_dict['phone']).first()
+            if find_vendor:
+                return jsonify({"error_msg": "Existed"})
+            newVendor = Vendor(name = data_dict['name'], phone = data_dict['phone'], password = AES_encrypt(data_dict["password"]), status = "unavaliable")
+            session.add(newVendor)
         session.commit()
         session.close()
         return jsonify({"error_msg": None})
@@ -56,21 +55,21 @@ def user_login():
         data = request.get_data()
         data_dict = json.loads(data)
         if data_dict['type'] == 'customer':
-        	customer = session.query(Customer).filter_by(phone = data_dict['phone']).first()
-        	if customer is None:
-        		return jsonify({'error_msg': "Not Exist", "token":None})
-            if customer.password != encrypt(data_dict['password']):
+            customer = session.query(Customer).filter_by(phone = data_dict['phone']).first()
+            if not customer:
+                return jsonify({'error_msg': "Not Exist", "token": None})
+            if customer.password != AES_encrypt(data_dict['password']):
                 return jsonify({'error_msg': "Wrong Password", "token":None})
-        	uid = customer.customer_id;
-        	session.close()
+            uid = customer.customer_id
+            session.close()
         else:
-        	vendor = session.query(Vendor).filter_by(phone = data_dict['phone']).first()
-        	if vendor is None:
-        		return jsonify({'error_msg': "Not Exist", "token":None})
-            if vendor.password != encrypt(data_dict['password']):
+            vendor = session.query(Vendor).filter_by(phone = data_dict['phone']).first()
+            if not vendor:
+                return jsonify({'error_msg': "Not Exist", "token": None})
+            if vendor.password != AES_encrypt(data_dict['password']):
                 return jsonify({'error_msg': "Wrong Password", "token":None})
-        	uid = customer.customer_id;
-        	session.close()
+            uid = vendor.vendor_id;
+            session.close()
         return jsonify({"token":encrypt(str(uid)), "error_msg":None})
     else:
         return jsonify({"error_msg":'POST only'})
