@@ -71,7 +71,6 @@ def user_register():
     if request.method == 'POST':
         session = DBSession()
         data = request.get_data()
-        print(data)
         data_dict = json.loads(data)
         if data_dict['type'] == 'customer':
         	find_customer = session.query(Customer).filter_by(phone = data_dict['phone']).first()
