@@ -28,7 +28,6 @@ class Vendor(Base):
     location = Column(String(256), nullable=True)
     image = Column(String(36), nullable=True)
 
-    images = relationship('Image', backref = 'vendor')
     dishes = relationship('Menu', backref = 'vendor')
 
 class Menu(Base):
@@ -46,7 +45,6 @@ class Menu(Base):
     price = Column(Float, nullable=False)
     image = Column(String(36), nullable=True)
 
-    dishes = relationship('Image', backref = 'menu')
     orders = relationship("Orders", backref = 'menu')
 
     @property
@@ -69,5 +67,5 @@ class Orders(Base):
     customer_id = Column(Integer, ForeignKey('customer.customer_id'))
     dish_id = Column(Integer, ForeignKey('menu.dish_id'))
 
-engine = create_engine('mysql://root:password@localhost:3306/mobile_canteen')
-Base.metadata.create_all(engine)
+# engine = create_engine('mysql://root:password@localhost:3306/mobile_canteen')
+# Base.metadata.create_all(engine)
