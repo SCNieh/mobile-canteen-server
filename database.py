@@ -33,8 +33,8 @@ class Vendor(Base):
     @property
     def serialize(self):
         return {
+            'vendor_id': self.vendor_id,
             'name': self.name,
-            'password': self.password,
             'phone': self.phone,
             'description': self.description,
             'status': self.status,
@@ -63,6 +63,7 @@ class Menu(Base):
     def serialize(self):
         return {
             'name': self.name,
+            'vendor_id': self.vendor_id,
             'date': self.date,
             'description': self.description,
             'ingredients': self.ingredients,
