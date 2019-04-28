@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import json
+import base64
+import uuid
+import os
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.orm import sessionmaker
 from database import Base, Customer, Vendor, Image, Menu, Orders
-
+from google.cloud import storage
+from datetime import date
 from AES import encrypt, decrypt, AES_encrypt
 
 app = Flask(__name__)
@@ -15,14 +19,48 @@ Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
 
+TMP_IMAGE_PATH = "F:\\2018CMU\\17781\\tmp\\"
+GCP_BUCKET = "mobile-cateen-images"
+
 def validate_token(token):
     id = decrypt(token)
     session = DBSession()
     user = session.query(Customer).filter_by(customer_id = id)
     if user != None:
-        return True
+        return id
     else:
-        return False
+        return None
+
+def upload_image(image):
+    image_decode = base64.b64decode(image)
+    image_name = str(uuid.uuid4())
+    tmp_image = TMP_IMAGE_PATH + image_name
+    with open(tmp_image, 'wb') as image_obj:
+        image_obj.write(image_decode)
+
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket(GCP_BUCKET)
+    blob = bucket.blob(image_name)
+    blob.upload_from_filename(tmp_image)
+    os.remove(tmp_image)
+
+    return image_name
+
+def retrieve_image(session, dish_info):
+    info = []
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket(GCP_BUCKET)
+    for dish in dish_info:
+        image_name = dish["image"]       
+        blob = bucket.blob(image_name)
+        tmp_image = TMP_IMAGE_PATH + image_name
+        blob.download_to_filename(tmp_image)
+        with open(tmp_image, "rb") as image_obj:
+            image_read = image_obj.read()
+            dish["image_data"] = base64.b64encode(image_read)
+        info.append(dish)
+
+    return info
 
 @app.route('/register/', methods = ['GET', "POST"])
 def user_register():
@@ -77,33 +115,49 @@ def user_login():
 @app.route('/menus/')
 def get_menus():
     if request.method == 'GET':
-        
-        # TODO: return today's menu
-        return jsonify()
+        session = DBSession()
+        dishes = session.query(Menu).all()
+        dish_info = [dish.serialize for dish in dishes]
+        dish_info = retrieve_image(session, dish_info)
+        return jsonify(Menu = dish_info)
 
 @app.route('/menus/<int:dish_id>/')
 def get_dish():
     if request.method == 'GET':
-        
+        session = DBSession()
+
         # TODO: return certain dish
         return jsonify()
 
 @app.route('/menus/add/', methods = ['GET', 'POST'])
 def publish_dish():
     if request.method == 'POST':
+        session = DBSession()
         data = json.loads(request.get_data())
         token = data['token']
-        if not validate_token(token):
+        vendor_id = validate_token(token)
+        if not vendor_id:
             return jsonify({"error_msg": "invalid user"})
         name = data["name"]
-        description = data["description"]
-        ingredients = data["ingredients"]
+        if "description" in data:
+            description = data["description"]
+        else:
+            description = ""
+        if "ingredients" in data:
+            ingredients = data["ingredients"]
+        else:
+            ingredients = ""
         quantity = data["quantity"]
         price = data["price"]
         image = data["image"]
-        
+        image_name = upload_image(image)
+        uid = str(uuid.uuid4())
+        new_dish = Menu(vendor_id=vendor_id, uuid=uid, date=date.today(), name=name, description=description, ingredients=ingredients, amount=quantity, amount_left=quantity, price=price, image=image_name)
+        session.add(new_dish)
+        session.commit()
+        session.close()
 
-        return True
+        return jsonify({"error_msg": None})
 
 @app.route('/vendors/')
 def get_vendors():
