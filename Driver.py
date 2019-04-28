@@ -50,19 +50,26 @@ def upload_image(image):
 
     return image_name
 
-def retrieve_image(session, dish_info):
+def retrieve_image(session, items):
     info = []
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(GCP_BUCKET)
-    for dish in dish_info:
-        image_name = dish["image"]       
-        blob = bucket.blob(image_name)
-        tmp_image = TMP_IMAGE_PATH + image_name
-        blob.download_to_filename(tmp_image)
-        with open(tmp_image, "rb") as image_obj:
-            image_read = image_obj.read()
-            dish["image_data"] = base64.b64encode(image_read)
-        info.append(dish)
+    for item in items:
+        image_name = item["image"]
+        print(image_name)
+        if image_name != None and image_name != "":
+            blob = bucket.blob(image_name)
+            tmp_image = TMP_IMAGE_PATH + image_name
+            blob.download_to_filename(tmp_image)
+            with open(tmp_image, "rb") as image_obj:
+                image_read = image_obj.read()
+                item["image_data"] = base64.b64encode(image_read).decode('utf-8')
+            os.remove(tmp_image)
+
+        vendor_id = item["vendor_id"]
+        vendor = session.query(Vendor).filter_by(vendor_id=vendor_id).first()
+        item["vendor_name"] = vendor.name
+        info.append(item)
 
     return info
 
@@ -122,8 +129,8 @@ def get_menus():
         session = DBSession()
         dishes = session.query(Menu).all()
         dish_info = [dish.serialize for dish in dishes]
-        print(dish_info)
         dish_info = retrieve_image(session, dish_info)
+        session.close()
         return jsonify(Menu = dish_info)
 
 @app.route('/menus/<int:dish_id>/')
@@ -168,9 +175,11 @@ def publish_dish():
 @app.route('/vendors/')
 def get_vendors():
     if request.method == 'GET':
-        
-        # TODO: return vendors
-        return jsonify()
+        session = DBSession()
+        vendors = session.query(Vendor).all()
+        vendor_info = [vendor.serialize for vendor in vendors]
+        vendor_info = retrieve_image(session, vendor_info)
+        return jsonify(Menu = vendor_info)
 
 @app.route('/vendors/<int:vendor_id>/')
 def get_vendor():

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, Date, Float
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, Date, Float, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
@@ -30,6 +30,18 @@ class Vendor(Base):
 
     dishes = relationship('Menu', backref = 'vendor')
 
+    @property
+    def serialize(self):
+        return {
+            'vendor_id': self.vendor_id,
+            'name': self.name,
+            'phone': self.phone,
+            'description': self.description,
+            'status': self.status,
+            'location': self.location,
+            'image': self.image
+        }
+
 class Menu(Base):
     __tablename__ = 'menu'
 
@@ -51,6 +63,7 @@ class Menu(Base):
     def serialize(self):
         return {
             'name': self.name,
+            'vendor_id': self.vendor_id,
             'date': self.date,
             'description': self.description,
             'ingredients': self.ingredients,
@@ -66,6 +79,9 @@ class Orders(Base):
     order_id = Column(Integer, primary_key=True)
     customer_id = Column(Integer, ForeignKey('customer.customer_id'))
     dish_id = Column(Integer, ForeignKey('menu.dish_id'))
+    status = Column(String(128), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    timestamp = Column(DateTime, nullable=False)
 
 # engine = create_engine('mysql://root:password@localhost:3306/mobile_canteen')
 # Base.metadata.create_all(engine)
