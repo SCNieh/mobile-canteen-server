@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import json
+import base64
+import uuid
+import os
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.orm import sessionmaker
 from database import Base, Customer, Vendor, Image, Menu, Orders
+from google.cloud import storage
+from datetime import date
 from AES import decrypt
 
 app = Flask(__name__)
@@ -14,21 +19,39 @@ Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
 
+TMP_IMAGE_PATH = "F:\\2018CMU\\17781\\tmp\\"
+GCP_BUCKET = "mobile-cateen-images"
+
 def validate_token(token):
     id = decrypt(token)
     session = DBSession()
     user = session.query(Customer).filter_by(customer_id = id)
     if user != None:
-        return True
+        return id
     else:
-        return False
+        return None
+
+def upload_image(image):
+    image_decode = base64.b64decode(image)
+    image_name = str(uuid.uuid4())
+    tmp_image = TMP_IMAGE_PATH + image_name
+    with open(tmp_image, 'wb') as image_obj:
+        image_obj.write(image_decode)
+
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket(GCP_BUCKET)
+    blob = bucket.blob(image_name)
+    blob.upload_from_filename(tmp_image)
+    os.remove(tmp_image)
+
+    return image_name
 
 @app.route('/register/', methods = ['GET', "POST"])
 def user_register():
     if request.method == 'POST':
         data = request.get_data()
         data_dict = json.loads(data)
-        print(data)
+        print(data_dict)
         # TODO: register
         return jsonify({"token": "EHAS12389ASDHJK"})
     else:
@@ -46,8 +69,8 @@ def user_login():
 @app.route('/menus/')
 def get_menus():
     if request.method == 'GET':
-        
-        # TODO: return today's menu
+        # session = DBSession()
+
         return jsonify()
 
 @app.route('/menus/<int:dish_id>/')
@@ -60,19 +83,39 @@ def get_dish():
 @app.route('/menus/add/', methods = ['GET', 'POST'])
 def publish_dish():
     if request.method == 'POST':
+        session = DBSession()
         data = json.loads(request.get_data())
         token = data['token']
-        if not validate_token(token):
+        vendor_id = validate_token(token)
+        if not vendor_id:
             return jsonify({"error_msg": "invalid user"})
         name = data["name"]
-        description = data["description"]
-        ingredients = data["ingredients"]
+        if "description" in data:
+            description = data["description"]
+        else:
+            description = ""
+        if "ingredients" in data:
+            ingredients = data["ingredients"]
+        else:
+            ingredients = ""
         quantity = data["quantity"]
         price = data["price"]
         image = data["image"]
-        
+        image_name = upload_image(image)
+        uid = str(uuid.uuid4())
+        new_dish = Menu(vendor_id=vendor_id, uuid=uid, date=date.today(), name=name, description=description, ingredients=ingredients, amount=quantity, amount_left=quantity, price=price)
+        session.add(new_dish)
+        session.commit()
+        session.close()
 
-        return True
+        session = DBSession()
+        dish = session.query(Menu).filter_by(uuid=uid).first()
+        new_image = Image(name=image_name, dish_id=dish.dish_id)
+        session.add(new_image)
+        session.commit()
+        session.close()
+
+        return jsonify({"error_msg": None})
 
 @app.route('/vendors/')
 def get_vendors():
