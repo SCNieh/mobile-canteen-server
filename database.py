@@ -25,11 +25,11 @@ class Vendor(Base):
     phone = Column(String(64), nullable=True)
     description = Column(Text, nullable=True)
     status = Column(String(16), nullable=False)
-    location = Column(String(256), nullable=False)
+    location = Column(String(256), nullable=True)
 
     images = relationship('Image', backref = 'vendor')
     dishes = relationship('Menu', backref = 'vendor')
-    status = relationship('Status', backref = 'vendor')
+#    status = relationship('Status', backref = 'vendor')
 
 class Image(Base):
     __tablename__ = 'image'
@@ -52,7 +52,7 @@ class Menu(Base):
     amount_left = Column(Integer, nullable=False)
     price = Column(Float, nullable=False)
 
-    dishes = relationship('Images', backref = 'menu')
+    dishes = relationship('Image', backref = 'menu')
     orders = relationship("Orders", backref = 'menu')
 
 class Orders(Base):
@@ -62,5 +62,5 @@ class Orders(Base):
     customer_id = Column(Integer, ForeignKey('customer.customer_id'))
     dish_id = Column(Integer, ForeignKey('menu.dish_id'))
 
-engine = create_engine('mysql://test:password@35.245.224.212:3306/mobile_canteen')
-# Base.metadata.create_all(engine)
+engine = create_engine('mysql://root:password@localhost:3306/mobile_canteen')
+Base.metadata.create_all(engine)

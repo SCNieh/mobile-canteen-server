@@ -1,18 +1,16 @@
+import jwt
 from Crypto.Cipher import AES
 
-s1 = 'This is a key123'
-s2 = 'This is an IV456'
-
-def encrypt(input):
+def AES_encrypt(input):
     if len(input) % 16 != 0:
         input += (16 * (len(input) // 16 + 1) - len(input)) * '&'
-    obj = AES.new(s1, AES.MODE_CBC, s2)
-    return obj.encrypt(input)
+    obj = AES.new('This is a key123', AES.MODE_CBC, 'This is an IV456')
+    return str(obj.encrypt(input))
+
+def encrypt(input):
+    encoded_jwt = jwt.encode({'password':input}, 'secret', algorithm='HS256')
+    return encoded_jwt.decode('utf-8')
 
 def decrypt(input):
-    obj = AES.new(s1, AES.MODE_CBC, s2)
-    result = obj.decrypt(input).decode("utf-8")
-    for i in range(len(result) - 1, 0, -1):
-        if result[i] != '&':
-            break
-    return result[:i + 1]
+    print(input)
+    return jwt.decode(input.encode('utf-8'), 'secret', algorithms=['HS256'])['password']
