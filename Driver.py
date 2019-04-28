@@ -46,6 +46,22 @@ def upload_image(image):
 
     return image_name
 
+def retrieve_image(session, dish_info):
+    info = []
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket(GCP_BUCKET)
+    for dish in dish_info:
+        image_name = dish["image"]       
+        blob = bucket.blob(image_name)
+        tmp_image = TMP_IMAGE_PATH + image_name
+        blob.download_to_filename(tmp_image)
+        with open(tmp_image, "rb") as image_obj:
+            image_read = image_obj.read()
+            dish["image_data"] = base64.b64encode(image_read)
+        info.append(dish)
+
+    return info
+
 @app.route('/register/', methods = ['GET', "POST"])
 def user_register():
     if request.method == 'POST':
@@ -69,14 +85,17 @@ def user_login():
 @app.route('/menus/')
 def get_menus():
     if request.method == 'GET':
-        # session = DBSession()
-
-        return jsonify()
+        session = DBSession()
+        dishes = session.query(Menu).all()
+        dish_info = [dish.serialize for dish in dishes]
+        dish_info = retrieve_image(session, dish_info)
+        return jsonify(Menu = dish_info)
 
 @app.route('/menus/<int:dish_id>/')
 def get_dish():
     if request.method == 'GET':
-        
+        session = DBSession()
+
         # TODO: return certain dish
         return jsonify()
 
@@ -103,15 +122,8 @@ def publish_dish():
         image = data["image"]
         image_name = upload_image(image)
         uid = str(uuid.uuid4())
-        new_dish = Menu(vendor_id=vendor_id, uuid=uid, date=date.today(), name=name, description=description, ingredients=ingredients, amount=quantity, amount_left=quantity, price=price)
+        new_dish = Menu(vendor_id=vendor_id, uuid=uid, date=date.today(), name=name, description=description, ingredients=ingredients, amount=quantity, amount_left=quantity, price=price, image=image_name)
         session.add(new_dish)
-        session.commit()
-        session.close()
-
-        session = DBSession()
-        dish = session.query(Menu).filter_by(uuid=uid).first()
-        new_image = Image(name=image_name, dish_id=dish.dish_id)
-        session.add(new_image)
         session.commit()
         session.close()
 

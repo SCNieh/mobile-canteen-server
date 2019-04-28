@@ -26,17 +26,10 @@ class Vendor(Base):
     description = Column(Text, nullable=True)
     status = Column(String(16), nullable=False)
     location = Column(String(256), nullable=True)
+    image = Column(String(36), nullable=True)
 
     images = relationship('Image', backref = 'vendor')
     dishes = relationship('Menu', backref = 'vendor')
-
-class Image(Base):
-    __tablename__ = 'image'
-    
-    image_id = Column(Integer, primary_key=True)
-    name = Column(String(512), nullable=False)
-    vendor_id = Column(Integer, ForeignKey('vendor.vendor_id'))
-    dish_id = Column(Integer, ForeignKey('menu.dish_id'))
 
 class Menu(Base):
     __tablename__ = 'menu'
@@ -51,9 +44,23 @@ class Menu(Base):
     amount = Column(Integer, nullable=False)
     amount_left = Column(Integer, nullable=False)
     price = Column(Float, nullable=False)
+    image = Column(String(36), nullable=True)
 
     dishes = relationship('Image', backref = 'menu')
     orders = relationship("Orders", backref = 'menu')
+
+    @property
+    def serialize(self):
+        return {
+            'name': self.name,
+            'date': self.date,
+            'description': self.description,
+            'ingredients': self.ingredients,
+            'amount': self.amount,
+            'amount_left': self.amount_left,
+            'price': self.price,
+            'image': self.image
+        }
 
 class Orders(Base):
     __tablename__ = 'orders'
