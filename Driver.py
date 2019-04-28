@@ -19,6 +19,7 @@ Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
 
+# Change path to fit current platform
 TMP_IMAGE_PATH = "F:\\2018CMU\\17781\\tmp\\"
 GCP_BUCKET = "mobile-cateen-images"
 
