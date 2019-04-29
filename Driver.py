@@ -91,7 +91,7 @@ def retrieve_order_info(session, orders):
 def user_register():
     if request.method == 'POST':
         session = DBSession()
-        data = request.get_data()
+        data = request.get_data().decode('utf-8')
         data_dict = json.loads(data)
         if data_dict['type'] == 'customer':
         	find_customer = session.query(Customer).filter_by(phone = data_dict['phone']).first()
@@ -115,7 +115,7 @@ def user_register():
 def user_login():
     if request.method == 'POST':
         session = DBSession()
-        data = request.get_data()
+        data = request.get_data().decode('utf-8')
         data_dict = json.loads(data)
         if data_dict['type'] == 'customer':
             customer = session.query(Customer).filter_by(phone = data_dict['phone']).first()
@@ -159,7 +159,7 @@ def get_dish():
 def publish_dish():
     if request.method == 'POST':
         session = DBSession()
-        data = json.loads(request.get_data())
+        data = json.loads(request.get_data().decode('utf-8'))
         token = data['token']
         vendor_id = validate_token(token, "Vendor")
         print("vendor_id: %s" % vendor_id)
@@ -245,7 +245,7 @@ def vendor_status():
         print("vendor_id: %s" % vendor_id)
         if not vendor_id:
             return jsonify({"error_msg": "invalid user"})
-        data = json.loads(request.get_data())
+        data = json.loads(request.get_data().decode('utf-8'))
         vendor = session.query(Vendor).filter_by(vendor_id = vendor_id).first()
         vendor.status = data["status"]
         session.add(vendor)
@@ -257,14 +257,14 @@ def vendor_status():
 def order_status():
     if request.method == 'GET':
         session = DBSession()
-        data_dict = json.loads(request.get_data())
+        data_dict = json.loads(request.get_data().decode('utf-8'))
         order_id = data_dict["order_id"]
         order = session.query(Orders).filter_by(order_id = order_id).first()
         session.close()
         return jsonify({"status": order.status, "error_msg": None})
     elif request.method == 'POST':
         session = DBSession()
-        data = json.loads(request.get_data())
+        data = json.loads(request.get_data().decode('utf-8'))
         order_id = data["order_id"]
         order = session.query(Orders).filter_by(order_id = order_id).first()
         order.status = data["status"]
@@ -284,7 +284,7 @@ def get_order():
 def place_order():
     if request.method == 'POST':
         session = DBSession()
-        data_dict = json.loads(request.get_data())
+        data_dict = json.loads(request.get_data().decode('utf-8'))
         amount = data_dict['amount']
         dish_id = data_dict['dish_id']
         customer_id = decrypt(data_dict['token'])
@@ -319,7 +319,7 @@ def customer_info():
         return jsonify({'error_msg':None, 'phone':customer.phone, 'name':customer.name})
     elif request.method == 'POST':
         session = DBSession()
-        data = json.loads(request.get_data())
+        data = json.loads(request.get_data().decode('utf-8'))
         customer_id = decrypt(data['token'])
         customer = session.query(Customer).filter_by(customer_id = customer_id).first()
         if not customer:
