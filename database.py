@@ -88,6 +88,7 @@ class Orders(Base):
     @property
     def serialize(self):
         return {
+            'order_id': self.order_id,
             'customer_id': self.customer_id,
             'dish_id': self.dish_id,
             'status': self.status,

@@ -253,12 +253,25 @@ def vendor_status():
         session.close()
         return jsonify({"error_msg": None})
 
-@app.route('/orders/<int:customer_id>/')
-def get_customer_orders():
+@app.route('/orders/status/', methods = ['GET', 'POST'])
+def order_status():
     if request.method == 'GET':
-        
-        # TODO: return orders
-        return jsonify()
+        session = DBSession()
+        data_dict = json.loads(request.get_data())
+        order_id = data_dict["order_id"]
+        order = session.query(Orders).filter_by(order_id = order_id).first()
+        session.close()
+        return jsonify({"status": order.status, "error_msg": None})
+    elif request.method == 'POST':
+        session = DBSession()
+        data = json.loads(request.get_data())
+        order_id = data["order_id"]
+        order = session.query(Orders).filter_by(order_id = order_id).first()
+        order.status = data["status"]
+        session.add(order)
+        session.commit()
+        session.close()
+        return jsonify({"error_msg": None})
 
 @app.route('/orders/<int:customer_id>/<int:dish_id>/')
 def get_order():
