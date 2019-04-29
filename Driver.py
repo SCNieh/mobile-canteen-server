@@ -228,7 +228,30 @@ def get_vendor_orders():
 
 @app.route('/vendors/status', methods = ['GET', 'POST'])
 def vendor_status():
-    return jsonify()
+    if request.method == 'GET':
+        session = DBSession()
+        token = request.args.get('token')
+        vendor_id = validate_token(token, "Vendor")
+        print("vendor_id: %s" % vendor_id)
+        if not vendor_id:
+            return jsonify({"error_msg": "invalid user"})
+        vendor = session.query(Vendor).filter_by(vendor_id = vendor_id).first()
+        session.close()
+        return jsonify({"status": vendor.status, "error_msg": None})
+    elif request.method == 'POST':
+        session = DBSession()
+        token = request.args.get('token')
+        vendor_id = validate_token(token, "Vendor")
+        print("vendor_id: %s" % vendor_id)
+        if not vendor_id:
+            return jsonify({"error_msg": "invalid user"})
+        data = json.loads(request.get_data())
+        vendor = session.query(Vendor).filter_by(vendor_id = vendor_id).first()
+        vendor.status = data["status"]
+        session.add(vendor)
+        session.commit()
+        session.close()
+        return jsonify({"error_msg": None})
 
 @app.route('/orders/<int:customer_id>/')
 def get_customer_orders():
