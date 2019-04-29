@@ -9,12 +9,12 @@ from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.orm import sessionmaker
 from database import Base, Customer, Vendor, Menu, Orders
 from google.cloud import storage
-from datetime import date
+from datetime import date, datetime
 from AES import encrypt, decrypt, AES_encrypt
 
 app = Flask(__name__)
 
-engine = create_engine('mysql://root:password@localhost:3306/mobile_canteen')
+engine = create_engine('mysql://test:password@35.245.224.212:3306/mobile_canteen')
 Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
@@ -285,7 +285,7 @@ def place_order():
         if dish.amount_left < amount:
             return jsonify({'error_msg':'not enough dishes'})
         dish.amount_left -= amount
-        newOrder = Orders(customer_id = customer_id, dish_id = dish_id, status = 'Not yet', quantity = amount, timestamp = date.today(), vendor_id = dish.vendor_id)
+        newOrder = Orders(customer_id = customer_id, dish_id = dish_id, status = 'Not yet', quantity = amount, timestamp = datetime.now(), vendor_id = dish.vendor_id)
         session.add(dish)
         session.add(newOrder)
         session.commit()

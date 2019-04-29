@@ -62,6 +62,7 @@ class Menu(Base):
     @property
     def serialize(self):
         return {
+            'dish_id': self.dish_id,
             'name': self.name,
             'vendor_id': self.vendor_id,
             'date': self.date,
