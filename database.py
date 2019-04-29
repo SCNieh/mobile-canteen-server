@@ -78,10 +78,21 @@ class Orders(Base):
 
     order_id = Column(Integer, primary_key=True)
     customer_id = Column(Integer, ForeignKey('customer.customer_id'))
+    vendor_id = Column(Integer, ForeignKey('vendor.vendor_id'))
     dish_id = Column(Integer, ForeignKey('menu.dish_id'))
     status = Column(String(128), nullable=False)
     quantity = Column(Integer, nullable=False)
     timestamp = Column(DateTime, nullable=False)
+
+    @property
+    def serialize(self):
+        return {
+            'customer_id': self.customer_id,
+            'dish_id': self.dish_id,
+            'status': self.status,
+            'quantity': self.quantity,
+            'timestamp': self.timestamp
+        }
 
 # engine = create_engine('mysql://root:password@localhost:3306/mobile_canteen')
 # Base.metadata.create_all(engine)
