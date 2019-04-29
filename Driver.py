@@ -73,6 +73,20 @@ def retrieve_image(session, items):
 
     return info
 
+def retrieve_order_info(session, orders):
+    order_info = []
+    for order in orders:
+        customer_id = order['customer_id']
+        dish_id = order['dish_id']
+        customer = session.query(Customer).filter_by(customer_id=customer_id).first()
+        order['customer_name'] = customer.name
+        dish = session.query(Menu).filter_by(dish_id=dish_id).first()
+        order['dish_name'] = dish.name
+        order.pop('customer_id', None)
+        order.pop('dish_id', None)
+        order_info.append(order)
+    return order_info
+
 @app.route('/register/', methods = ['GET', "POST"])
 def user_register():
     if request.method == 'POST':
@@ -181,19 +195,63 @@ def get_vendors():
         vendor_info = retrieve_image(session, vendor_info)
         return jsonify(Menu = vendor_info)
 
-@app.route('/vendors/<int:vendor_id>/')
-def get_vendor():
+@app.route('/vendors/menus')
+def get_vendor_menu():
     if request.method == 'GET':
-        
-        # TODO: return vendor
-        return jsonify()
+        session = DBSession()
+        token = request.args.get('token')
+        vendor_id = validate_token(token, "Vendor")
+        print("vendor_id: %s" % vendor_id)
+        if not vendor_id:
+            return jsonify({"error_msg": "invalid user"})
+        dishes = session.query(Menu).filter_by(vendor_id = vendor_id).all()
+        dish_info = [dish.serialize for dish in dishes]
+        dish_info = retrieve_image(session, dish_info)
+        session.close()
+        return jsonify(Menu = dish_info)
 
-@app.route('/vendors/<int:vendor_id>/menu/')
-def get_vendor_offerings():
+@app.route('/vendors/orders')
+def get_vendor_orders():
     if request.method == 'GET':
-        
-        # TODO: return vendor's offerings
-        return jsonify()
+        session = DBSession()
+        token = request.args.get('token')
+        vendor_id = validate_token(token, "Vendor")
+        print("vendor_id: %s" % vendor_id)
+        if not vendor_id:
+            return jsonify({"error_msg": "invalid user"})
+        orders = session.query(Orders).filter_by(vendor_id = vendor_id).all()
+        order_info = [order.serialize for order in orders]
+        order_info = retrieve_order_info(session, order_info)
+        session.close()
+
+        return jsonify(Orders = order_info)
+
+@app.route('/vendors/status', methods = ['GET', 'POST'])
+def vendor_status():
+    if request.method == 'GET':
+        session = DBSession()
+        token = request.args.get('token')
+        vendor_id = validate_token(token, "Vendor")
+        print("vendor_id: %s" % vendor_id)
+        if not vendor_id:
+            return jsonify({"error_msg": "invalid user"})
+        vendor = session.query(Vendor).filter_by(vendor_id = vendor_id).first()
+        session.close()
+        return jsonify({"status": vendor.status, "error_msg": None})
+    elif request.method == 'POST':
+        session = DBSession()
+        token = request.args.get('token')
+        vendor_id = validate_token(token, "Vendor")
+        print("vendor_id: %s" % vendor_id)
+        if not vendor_id:
+            return jsonify({"error_msg": "invalid user"})
+        data = json.loads(request.get_data())
+        vendor = session.query(Vendor).filter_by(vendor_id = vendor_id).first()
+        vendor.status = data["status"]
+        session.add(vendor)
+        session.commit()
+        session.close()
+        return jsonify({"error_msg": None})
 
 @app.route('/orders/<int:customer_id>/')
 def get_customer_orders():
@@ -213,13 +271,6 @@ def get_order():
 def place_order():
     if request.method == 'POST':
         # TODO: place order
-        return jsonify()
-
-@app.route('/status/<int:vendor_id>/')
-def get_vendor_orders():
-    if request.method == 'GET':
-        
-        # TODO: return certain orders
         return jsonify()
 
 @app.route('/customers/info', methods = ['GET', 'POST'])
