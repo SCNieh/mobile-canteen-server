@@ -90,6 +90,7 @@ class Orders(Base):
         return {
             'order_id': self.order_id,
             'customer_id': self.customer_id,
+            'vendor_id': self.vendor_id,
             'dish_id': self.dish_id,
             'status': self.status,
             'quantity': self.quantity,

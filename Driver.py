@@ -87,6 +87,24 @@ def retrieve_order_info(session, orders):
         order_info.append(order)
     return order_info
 
+def retrieve_customer_order_info(session, orders):
+    order_info = {"past": [], "curr": [], "error_mgs": None}
+    for order in orders:
+        vendor_id = order['vendor_id']
+        dish_id = order['dish_id']
+        vendor = session.query(Vendor).filter_by(vendor_id=vendor_id).first()
+        order['vendor_name'] = vendor.name
+        dish = session.query(Menu).filter_by(dish_id=dish_id).first()
+        order['dish_name'] = dish.name
+        order.pop('customer_id', None)
+        order.pop('vendor_id', None)
+        order.pop('dish_id', None)
+        if order["status"] == "Not yet":
+            order_info["curr"].append(order)
+        else:
+            order_info["past"].append(order)
+    return order_info
+
 @app.route('/register/', methods = ['GET', "POST"])
 def user_register():
     if request.method == 'POST':
@@ -147,14 +165,6 @@ def get_menus():
         session.close()
         return jsonify(Menu = dish_info)
 
-@app.route('/menus/<int:dish_id>/')
-def get_dish():
-    if request.method == 'GET':
-        session = DBSession()
-
-        # TODO: return certain dish
-        return jsonify()
-
 @app.route('/menus/add/', methods = ['GET', 'POST'])
 def publish_dish():
     if request.method == 'POST':
@@ -209,6 +219,22 @@ def get_vendor_menu():
         dish_info = retrieve_image(session, dish_info)
         session.close()
         return jsonify(Menu = dish_info)
+
+@app.route('/customers/orders')
+def get_customer_orders():
+    if request.method == 'GET':
+        session = DBSession()
+        token = request.args.get('token')
+        customer_id = validate_token(token, "Customer")
+        print("customer_id: %s" % customer_id)
+        if not customer_id:
+            return jsonify({"error_msg": "invalid user"})
+        orders = session.query(Orders).filter_by(customer_id = customer_id).all()
+        order_info = [order.serialize for order in orders]
+        order_info = retrieve_customer_order_info(session, order_info)
+        session.close()
+
+        return jsonify(Orders = order_info)
 
 @app.route('/vendors/orders')
 def get_vendor_orders():
