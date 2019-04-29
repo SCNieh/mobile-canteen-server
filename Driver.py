@@ -9,12 +9,12 @@ from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.orm import sessionmaker
 from database import Base, Customer, Vendor, Menu, Orders
 from google.cloud import storage
-from datetime import date
+from datetime import date, datetime
 from AES import encrypt, decrypt, AES_encrypt
 
 app = Flask(__name__)
 
-engine = create_engine('mysql://root:password@localhost:3306/mobile_canteen')
+engine = create_engine('mysql://test:password@35.245.224.212:3306/mobile_canteen')
 Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
@@ -87,11 +87,29 @@ def retrieve_order_info(session, orders):
         order_info.append(order)
     return order_info
 
+def retrieve_customer_order_info(session, orders):
+    order_info = {"past": [], "curr": [], "error_mgs": None}
+    for order in orders:
+        vendor_id = order['vendor_id']
+        dish_id = order['dish_id']
+        vendor = session.query(Vendor).filter_by(vendor_id=vendor_id).first()
+        order['vendor_name'] = vendor.name
+        dish = session.query(Menu).filter_by(dish_id=dish_id).first()
+        order['dish_name'] = dish.name
+        order.pop('customer_id', None)
+        order.pop('vendor_id', None)
+        order.pop('dish_id', None)
+        if order["status"] == "Not yet":
+            order_info["curr"].append(order)
+        else:
+            order_info["past"].append(order)
+    return order_info
+
 @app.route('/register/', methods = ['GET', "POST"])
 def user_register():
     if request.method == 'POST':
         session = DBSession()
-        data = request.get_data()
+        data = request.get_data().decode('utf-8')
         data_dict = json.loads(data)
         if data_dict['type'] == 'customer':
         	find_customer = session.query(Customer).filter_by(phone = data_dict['phone']).first()
@@ -115,7 +133,7 @@ def user_register():
 def user_login():
     if request.method == 'POST':
         session = DBSession()
-        data = request.get_data()
+        data = request.get_data().decode('utf-8')
         data_dict = json.loads(data)
         if data_dict['type'] == 'customer':
             customer = session.query(Customer).filter_by(phone = data_dict['phone']).first()
@@ -147,19 +165,11 @@ def get_menus():
         session.close()
         return jsonify(Menu = dish_info)
 
-@app.route('/menus/<int:dish_id>/')
-def get_dish():
-    if request.method == 'GET':
-        session = DBSession()
-
-        # TODO: return certain dish
-        return jsonify()
-
 @app.route('/menus/add/', methods = ['GET', 'POST'])
 def publish_dish():
     if request.method == 'POST':
         session = DBSession()
-        data = json.loads(request.get_data())
+        data = json.loads(request.get_data().decode('utf-8'))
         token = data['token']
         vendor_id = validate_token(token, "Vendor")
         print("vendor_id: %s" % vendor_id)
@@ -210,6 +220,22 @@ def get_vendor_menu():
         session.close()
         return jsonify(Menu = dish_info)
 
+@app.route('/customers/orders')
+def get_customer_orders():
+    if request.method == 'GET':
+        session = DBSession()
+        token = request.args.get('token')
+        customer_id = validate_token(token, "Customer")
+        print("customer_id: %s" % customer_id)
+        if not customer_id:
+            return jsonify({"error_msg": "invalid user"})
+        orders = session.query(Orders).filter_by(customer_id = customer_id).all()
+        order_info = [order.serialize for order in orders]
+        order_info = retrieve_customer_order_info(session, order_info)
+        session.close()
+
+        return jsonify(Orders = order_info)
+
 @app.route('/vendors/orders')
 def get_vendor_orders():
     if request.method == 'GET':
@@ -245,7 +271,7 @@ def vendor_status():
         print("vendor_id: %s" % vendor_id)
         if not vendor_id:
             return jsonify({"error_msg": "invalid user"})
-        data = json.loads(request.get_data())
+        data = json.loads(request.get_data().decode('utf-8'))
         vendor = session.query(Vendor).filter_by(vendor_id = vendor_id).first()
         vendor.status = data["status"]
         session.add(vendor)
@@ -253,12 +279,25 @@ def vendor_status():
         session.close()
         return jsonify({"error_msg": None})
 
-@app.route('/orders/<int:customer_id>/')
-def get_customer_orders():
+@app.route('/orders/status/', methods = ['GET', 'POST'])
+def order_status():
     if request.method == 'GET':
-        
-        # TODO: return orders
-        return jsonify()
+        session = DBSession()
+        data_dict = json.loads(request.get_data().decode('utf-8'))
+        order_id = data_dict["order_id"]
+        order = session.query(Orders).filter_by(order_id = order_id).first()
+        session.close()
+        return jsonify({"status": order.status, "error_msg": None})
+    elif request.method == 'POST':
+        session = DBSession()
+        data = json.loads(request.get_data().decode('utf-8'))
+        order_id = data["order_id"]
+        order = session.query(Orders).filter_by(order_id = order_id).first()
+        order.status = data["status"]
+        session.add(order)
+        session.commit()
+        session.close()
+        return jsonify({"error_msg": None})
 
 @app.route('/orders/<int:customer_id>/<int:dish_id>/')
 def get_order():
@@ -271,7 +310,7 @@ def get_order():
 def place_order():
     if request.method == 'POST':
         session = DBSession()
-        data_dict = json.loads(request.get_data())
+        data_dict = json.loads(request.get_data().decode('utf-8'))
         amount = data_dict['amount']
         dish_id = data_dict['dish_id']
         customer_id = decrypt(data_dict['token'])
@@ -285,7 +324,7 @@ def place_order():
         if dish.amount_left < amount:
             return jsonify({'error_msg':'not enough dishes'})
         dish.amount_left -= amount
-        newOrder = Orders(customer_id = customer_id, dish_id = dish_id, status = 'Not yet', quantity = amount, timestamp = date.today(), vendor_id = dish.vendor_id)
+        newOrder = Orders(customer_id = customer_id, dish_id = dish_id, status = 'Not yet', quantity = amount, timestamp = datetime.now(), vendor_id = dish.vendor_id)
         session.add(dish)
         session.add(newOrder)
         session.commit()
@@ -306,7 +345,7 @@ def customer_info():
         return jsonify({'error_msg':None, 'phone':customer.phone, 'name':customer.name})
     elif request.method == 'POST':
         session = DBSession()
-        data = json.loads(request.get_data())
+        data = json.loads(request.get_data().decode('utf-8'))
         customer_id = decrypt(data['token'])
         customer = session.query(Customer).filter_by(customer_id = customer_id).first()
         if not customer:

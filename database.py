@@ -62,6 +62,7 @@ class Menu(Base):
     @property
     def serialize(self):
         return {
+            'dish_id': self.dish_id,
             'name': self.name,
             'vendor_id': self.vendor_id,
             'date': self.date,
@@ -87,7 +88,9 @@ class Orders(Base):
     @property
     def serialize(self):
         return {
+            'order_id': self.order_id,
             'customer_id': self.customer_id,
+            'vendor_id': self.vendor_id,
             'dish_id': self.dish_id,
             'status': self.status,
             'quantity': self.quantity,
