@@ -324,6 +324,29 @@ def customer_info():
 
         return jsonify({'error_msg':None})
 
+@app.route('/vendors/location/', methods = ['POST'])
+def update_vendor_location():
+    if request.method == 'POST':
+        session = DBSession()
+        data = json.loads(request.get_data())
+        token = data['token']
+        if data['vendor_id'] != validate_token(token, 'Vendor'):
+            return jsonify({'error_msg': 'no legal'})
+
+        vendor_id = data['vendor_id']
+        vendor = session.query(Vendor).filter_by(vendor_id = vendor_id).first()
+        if not vendor:
+            return jsonify({'error_msg': 'no such vendor'})
+        vendor.location = data['location']
+
+        session.add(vendor)
+        session.commit()
+        session.close()
+
+        return jsonify({'error_msg': None})
+
+    return jsonify({'error_msg': 'Only Post'})
+
 if __name__ == '__main__':
     app.debug = True
     app.run(host='0.0.0.0')
