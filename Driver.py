@@ -270,8 +270,27 @@ def get_order():
 @app.route('/orders/add/', methods = ['GET', 'POST'])
 def place_order():
     if request.method == 'POST':
-        # TODO: place order
-        return jsonify()
+        session = DBSession()
+        data_dict = json.loads(request.get_data())
+        amount = data_dict['amount']
+        dish_id = data_dict['dish_id']
+        customer_id = decrypt(data_dict['token'])
+        customer = session.query(Customer).filter_by(customer_id = customer_id).first()
+        if not customer:
+            return jsonify({'error_msg':'no such user'})
+        
+        dish = session.query(Menu).filter_by(dish_id = dish_id).first()
+        if not dish:
+            return jsonify({'error_msg':'do not have this dish'})
+        if dish.amount_left < amount:
+            return jsonify({'error_msg':'not enough dishes'})
+        dish.amount_left -= amount
+        newOrder = Orders(customer_id = customer_id, dish_id = dish_id, status = 'Not yet', quantity = amount, timestamp = date.today(), vendor_id = dish.vendor_id)
+        session.add(dish)
+        session.add(newOrder)
+        session.commit()
+        session.close()
+        return jsonify({'error_msg':None})
 
 @app.route('/customers/info', methods = ['GET', 'POST'])
 def customer_info():
