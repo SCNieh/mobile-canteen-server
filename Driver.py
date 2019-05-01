@@ -93,6 +93,7 @@ def retrieve_customer_order_info(session, orders):
         vendor_id = order['vendor_id']
         dish_id = order['dish_id']
         vendor = session.query(Vendor).filter_by(vendor_id=vendor_id).first()
+        order['location'] = vendor.location
         order['vendor_name'] = vendor.name
         dish = session.query(Menu).filter_by(dish_id=dish_id).first()
         order['dish_name'] = dish.name
@@ -104,6 +105,10 @@ def retrieve_customer_order_info(session, orders):
         else:
             order_info["past"].append(order)
     return order_info
+
+@app.route('/', methods = ['GET', "POST"])
+def health_check():
+    return "OK\n"
 
 @app.route('/register/', methods = ['GET', "POST"])
 def user_register():
