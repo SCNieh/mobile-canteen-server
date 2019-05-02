@@ -372,7 +372,7 @@ def customer_info():
 def update_vendor_location():
     if request.method == 'POST':
         session = DBSession()
-        data = json.loads(request.get_data())
+        data = json.loads(request.get_data().decode('utf-8'))
         token = data['token']
         if data['vendor_id'] != validate_token(token, 'Vendor'):
             return jsonify({'error_msg': 'no legal'})
