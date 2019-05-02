@@ -374,10 +374,7 @@ def update_vendor_location():
         session = DBSession()
         data = json.loads(request.get_data().decode('utf-8'))
         token = data['token']
-        if data['vendor_id'] != validate_token(token, 'Vendor'):
-            return jsonify({'error_msg': 'no legal'})
-
-        vendor_id = data['vendor_id']
+        vendor_id = decrypt(token)
         vendor = session.query(Vendor).filter_by(vendor_id = vendor_id).first()
         if not vendor:
             return jsonify({'error_msg': 'no such vendor'})
